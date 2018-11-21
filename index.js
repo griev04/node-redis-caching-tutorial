@@ -6,7 +6,7 @@ const PORT = process.env.PORT;
 // REDIS setup
 const redis = require('redis');
 const REDIS_PORT = process.env.REDIS_PORT;
-const client = redis.createClient(REDIS_PORT);
+const cache = redis.createClient(REDIS_PORT);
 
 const app = express();
 
@@ -23,7 +23,7 @@ function getNumberOfRepos(req, res, next) {
         let repoNumber = response.body.length;
 
         // Redis caching (with or without expire)
-        client.setex(org, 10, repoNumber);
+        cache.setex(org, 10, repoNumber);
 
         res.send(respond(org, repoNumber));
     });
@@ -31,9 +31,9 @@ function getNumberOfRepos(req, res, next) {
 
 
 // middleware cache function
-function cache(req, res, next) {
+function cachedData(req, res, next) {
     const org = req.query.org;
-    client.get(org, function(err, data) {
+    cache.get(org, function(err, data) {
         if (err) throw err;
 
         if (data != null) {
@@ -46,7 +46,7 @@ function cache(req, res, next) {
 
 
 // add middleware function to the handler
-app.get('/repos', cache, getNumberOfRepos);
+app.get('/repos', cachedData, getNumberOfRepos);
 
 app.listen(PORT, function () {
     console.log('app listening on port', PORT);
